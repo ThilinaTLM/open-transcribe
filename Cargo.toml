@@ -8,7 +8,7 @@ actix-web = "4.11.0"
 actix-multipart = "0.7.2"
 anyhow = "1.0.98"
 base64 = "0.22.1"
-dotenv = "0.15.0"
+env_logger = "0.11.6"
 futures-util = "0.3.31"
 rubato = "0.16.2"
 serde = { version = "1.0.219", features = ["derive"] }

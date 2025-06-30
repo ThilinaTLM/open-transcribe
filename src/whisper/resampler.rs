@@ -10,7 +10,11 @@ pub fn resample_to_16khz(
         return Ok(audio_data.to_vec());
     }
 
-    // Setup resampler
+    let frames = audio_data.len() / channels;
+    if frames == 0 {
+        return Err(anyhow::anyhow!("No audio frames to resample"));
+    }
+
     let params = rubato::SincInterpolationParameters {
         sinc_len: 128,
         f_cutoff: 0.95,
@@ -19,37 +23,25 @@ pub fn resample_to_16khz(
         window: WindowFunction::BlackmanHarris2,
     };
 
-    // Prepare input as channel separated data
-    let frames = audio_data.len() / channels;
-    let mut input_frames = vec![Vec::with_capacity(frames); channels];
-
-    for frame in 0..frames {
+    let mut input_channels = vec![Vec::with_capacity(frames); channels];
+    for frame_idx in 0..frames {
         for ch in 0..channels {
-            input_frames[ch].push(audio_data[frame * channels + ch]);
+            input_channels[ch].push(audio_data[frame_idx * channels + ch]);
         }
     }
 
-    // Create resampler
-    let mut resampler = SincFixedIn::<f32>::new(
-        16000 as f64 / sample_rate as f64,
-        2.0,
-        params,
-        frames, // Use the full length as chunk size
-        channels,
-    )?;
+    let resample_ratio = 16000.0 / sample_rate as f64;
+    let mut resampler = SincFixedIn::<f32>::new(resample_ratio, 2.0, params, frames, channels)?;
 
-    // Process all frames at once
-    let resampled_channels = resampler.process(&input_frames, None)?;
-
-    // Get delay information
+    let resampled_channels = resampler.process(&input_channels, None)?;
     let delay = resampler.output_delay();
+    let expected_output_frames = (frames as f64 * resample_ratio) as usize;
 
-    // Calculate expected output length
-    let expected_len = (frames as f64 * 16000 as f64 / sample_rate as f64) as usize;
+    let mut output = Vec::with_capacity(expected_output_frames * channels);
+    let start_frame = delay;
+    let end_frame = (delay + expected_output_frames).min(resampled_channels[0].len());
 
-    // Interleave the output back
-    let mut output = Vec::with_capacity(expected_len * channels);
-    for frame_idx in delay..resampled_channels[0].len().min(delay + expected_len) {
+    for frame_idx in start_frame..end_frame {
         for ch in 0..channels {
             output.push(resampled_channels[ch][frame_idx]);
         }
