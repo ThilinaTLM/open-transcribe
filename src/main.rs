@@ -1,110 +1,34 @@
 mod whisper;
 
 use actix_multipart::{Field, Multipart};
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, get, post, web};
-use base64::{Engine as _, engine::general_purpose};
+use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
 use futures_util::TryStreamExt;
 use serde_json;
 use whisper::config::WhisperConfig;
 use whisper::transcriber::{InputAudio, SimpleTranscriber};
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().json(WhisperConfig::default())
-}
-
-#[derive(serde::Deserialize)]
-struct TranscribeRequest {
-    #[serde(default)]
-    audio: Vec<u8>, // Raw bytes (deprecated)
-    #[serde(default)]
-    audio_base64: Option<String>, // Base64 encoded audio (preferred)
-    sample_rate: Option<u32>,
-    channels: Option<usize>,
-    bit_depth: Option<u8>,
+#[get("/api/v1/health")]
+async fn health_check() -> impl Responder {
+    HttpResponse::Ok().json(serde_json::json!({
+        "status": "ok"
+    }))
 }
 
 #[derive(serde::Serialize)]
-struct TranscribeResponse {
+struct TranscriptionDto {
     text: String,
-    segments: Option<Vec<TranscribeSegment>>,
+    segments: Option<Vec<TranscriptionSegment>>,
 }
 
 #[derive(serde::Serialize)]
-struct TranscribeSegment {
+struct TranscriptionSegment {
     start: usize,
     end: usize,
     text: String,
     confidence: f32,
 }
 
-// New endpoint for raw binary audio
-#[post("/transcribe/raw")]
-async fn transcribe_raw(req: HttpRequest, body: web::Bytes) -> impl Responder {
-    // Parse headers for audio format information
-    let sample_rate = req
-        .headers()
-        .get("X-Sample-Rate")
-        .and_then(|h| h.to_str().ok())
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(16000);
-
-    let channels = req
-        .headers()
-        .get("X-Channels")
-        .and_then(|h| h.to_str().ok())
-        .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(1);
-
-    let bit_depth = req
-        .headers()
-        .get("X-Bit-Depth")
-        .and_then(|h| h.to_str().ok())
-        .and_then(|s| s.parse::<u8>().ok())
-        .unwrap_or(16);
-
-    if body.is_empty() {
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "No audio data provided"
-        }));
-    }
-
-    // Convert binary audio to f32 samples based on bit depth
-    let audio_samples: Vec<f32> = match bit_depth {
-        16 => body
-            .chunks_exact(2)
-            .map(|chunk| {
-                let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-                sample as f32 / i16::MAX as f32
-            })
-            .collect(),
-        24 => body
-            .chunks_exact(3)
-            .map(|chunk| {
-                // 24-bit audio (3 bytes, little endian)
-                let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], 0]) >> 8;
-                sample as f32 / 8388607.0 // 2^23 - 1
-            })
-            .collect(),
-        32 => body
-            .chunks_exact(4)
-            .map(|chunk| {
-                let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-                sample as f32 / i32::MAX as f32
-            })
-            .collect(),
-        _ => {
-            return HttpResponse::BadRequest().json(serde_json::json!({
-                "error": format!("Unsupported bit depth: {}", bit_depth)
-            }));
-        }
-    };
-
-    transcribe_audio_samples(audio_samples, sample_rate, channels).await
-}
-
-// New endpoint for multipart file uploads
-#[post("/transcribe/upload")]
+#[post("/api/v1/transcribe")]
 async fn transcribe_upload(mut payload: Multipart) -> impl Responder {
     let mut audio_data: Option<Vec<u8>> = None;
     let mut sample_rate: u32 = 16000;
@@ -158,7 +82,6 @@ async fn transcribe_upload(mut payload: Multipart) -> impl Responder {
         }
     };
 
-    // Convert binary audio to f32 samples based on bit depth
     let audio_samples: Vec<f32> = match bit_depth {
         16 => audio_bytes
             .chunks_exact(2)
@@ -199,7 +122,6 @@ async fn read_field_data(mut field: Field) -> Result<Vec<u8>, actix_web::Error> 
     Ok(data)
 }
 
-// Shared transcription logic
 async fn transcribe_audio_samples(
     audio_samples: Vec<f32>,
     sample_rate: u32,
@@ -211,7 +133,6 @@ async fn transcribe_audio_samples(
         }));
     }
 
-    // Create WhisperConfig and SimpleTranscriber
     let config = WhisperConfig::default();
     let transcriber = match SimpleTranscriber::new(config) {
         Ok(t) => t,
@@ -222,20 +143,18 @@ async fn transcribe_audio_samples(
         }
     };
 
-    // Prepare input audio
     let input_audio = InputAudio {
         data: &audio_samples,
         sample_rate,
         channels,
     };
 
-    // Transcribe the audio
     match transcriber.transcribe(&input_audio) {
         Ok(output) => {
-            let segments: Vec<TranscribeSegment> = output
+            let segments: Vec<TranscriptionSegment> = output
                 .segments
                 .into_iter()
-                .map(|seg| TranscribeSegment {
+                .map(|seg| TranscriptionSegment {
                     start: seg.start,
                     end: seg.end,
                     text: seg.text,
@@ -243,7 +162,7 @@ async fn transcribe_audio_samples(
                 })
                 .collect();
 
-            HttpResponse::Ok().json(TranscribeResponse {
+            HttpResponse::Ok().json(TranscriptionDto {
                 text: output.combined,
                 segments: Some(segments),
             })
@@ -254,64 +173,6 @@ async fn transcribe_audio_samples(
     }
 }
 
-#[post("/transcribe")]
-async fn transcribe(req_body: web::Json<TranscribeRequest>) -> impl Responder {
-    // Default values if not provided
-    let sample_rate = req_body.sample_rate.unwrap_or(16000);
-    let channels = req_body.channels.unwrap_or(1);
-    let bit_depth = req_body.bit_depth.unwrap_or(16);
-
-    // Get audio data - prefer base64 over raw bytes
-    let audio_bytes = if let Some(ref base64_data) = req_body.audio_base64 {
-        match general_purpose::STANDARD.decode(base64_data) {
-            Ok(bytes) => bytes,
-            Err(_) => {
-                return HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": "Invalid base64 audio data"
-                }));
-            }
-        }
-    } else if !req_body.audio.is_empty() {
-        req_body.audio.clone()
-    } else {
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "No audio data provided (use 'audio_base64' or 'audio' field)"
-        }));
-    };
-
-    // Convert binary audio to f32 samples based on bit depth
-    let audio_samples: Vec<f32> = match bit_depth {
-        16 => audio_bytes
-            .chunks_exact(2)
-            .map(|chunk| {
-                let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-                sample as f32 / i16::MAX as f32
-            })
-            .collect(),
-        24 => audio_bytes
-            .chunks_exact(3)
-            .map(|chunk| {
-                let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], 0]) >> 8;
-                sample as f32 / 8388607.0
-            })
-            .collect(),
-        32 => audio_bytes
-            .chunks_exact(4)
-            .map(|chunk| {
-                let sample = i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-                sample as f32 / i32::MAX as f32
-            })
-            .collect(),
-        _ => {
-            return HttpResponse::BadRequest().json(serde_json::json!({
-                "error": format!("Unsupported bit depth: {}", bit_depth)
-            }));
-        }
-    };
-
-    transcribe_audio_samples(audio_samples, sample_rate, channels).await
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
@@ -319,11 +180,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::JsonConfig::default().limit(50 * 1024 * 1024)) // 50MB
             .app_data(
                 actix_multipart::form::MultipartFormConfig::default()
-                    .total_limit(100 * 1024 * 1024),
-            ) // 100MB
-            .service(hello)
-            .service(transcribe)
-            .service(transcribe_raw)
+                    .total_limit(100 * 1024 * 1024), // 100MB
+            )
+            .service(health_check)
             .service(transcribe_upload)
     })
     .bind(("127.0.0.1", 8080))?
