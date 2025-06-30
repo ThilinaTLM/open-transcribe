@@ -1,6 +1,7 @@
 mod models;
 mod whisper;
 
+use actix_cors::Cors;
 use actix_multipart::{Field, Multipart};
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, middleware::Logger, post, web};
 use futures_util::TryStreamExt;
@@ -209,6 +210,13 @@ async fn main() -> std::io::Result<()> {
             .app_data(
                 actix_multipart::form::MultipartFormConfig::default()
                     .total_limit(100 * 1024 * 1024), // 100MB
+            )
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allow_any_method()
+                    .allow_any_header()
+                    .max_age(3600),
             )
             .wrap(Logger::default())
             .service(health_check)
