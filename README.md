@@ -100,75 +100,147 @@ curl -X POST http://localhost:8080/api/v1/transcribe \
 - CUDA toolkit (optional, for GPU acceleration)
 - Whisper model file (ggml format)
 
-# Audio Recording and Transcription
+# Client Application
 
-This Python script records audio from your microphone and sends it to the open-transcribe Rust API for transcription.
+The client application supports both file transcription and live audio recording using the native Rust [cpal](https://github.com/RustAudio/cpal) library for cross-platform audio I/O.
 
-## Setup
+## Features
 
-1. **Install Python dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Start the Rust API server:**
-   ```bash
-   cargo run
-   ```
-   The server should be running on `http://127.0.0.1:8080`
+- **File Mode**: Transcribe existing audio files
+- **Recording Mode**: Record audio directly from your microphone and transcribe it
+- **Cross-platform**: Works on Linux, Windows, macOS, and more
+- **Flexible Audio Settings**: Configurable sample rate, channels, and bit depth
+- **Real-time Feedback**: Recording countdown and progress indicators
 
 ## Usage
 
-### Basic usage (record for 5 seconds):
+### File Transcription
 ```bash
-python record_and_transcribe.py
+# Transcribe an existing audio file
+cargo run --bin client audio.wav
+
+# With custom server URL
+cargo run --bin client audio.wav --server-url http://192.168.1.100:8080
 ```
 
-### Custom recording duration:
+### Audio Recording & Transcription
 ```bash
-python record_and_transcribe.py -d 10  # Record for 10 seconds
+# Record 5 seconds (default) and transcribe
+cargo run --bin client --record-mode
+
+# Record for 10 seconds
+cargo run --bin client --record-mode --record-duration 10
+
+# Record with high-quality settings
+cargo run --bin client --record-mode \
+    --sample-rate 44100 \
+    --channels 2 \
+    --bit-depth 24 \
+    --record-duration 15
 ```
 
-### List available audio devices:
-```bash
-python record_and_transcribe.py --list-devices
+### Command Line Options
+
+```
+USAGE:
+    client [OPTIONS] [AUDIO_FILE]
+
+MODES:
+    File Mode:    client audio.wav
+    Record Mode:  client --record-mode
+
+OPTIONS:
+    --record-mode                Enable audio recording mode
+    --record-duration <seconds>  Recording duration (default: 5)
+    --server-url <url>           Server URL (default: http://localhost:8080)
+    --sample-rate <rate>         Audio sample rate (default: 16000)
+    --channels <count>           Number of audio channels (default: 1)
+    --bit-depth <depth>          Audio bit depth: 16, 24, or 32 (default: 16)
+    --help, -h                   Show help message
 ```
 
-### Advanced options:
-```bash
-python record_and_transcribe.py \
-    --duration 8 \
-    --sample-rate 16000 \
-    --channels 1 \
-    --bit-depth 16 \
-    --api-url http://127.0.0.1:8080
-```
+## Recording Process
 
-## Command Line Options
+When using recording mode, the client will:
 
-- `-d, --duration`: Recording duration in seconds (default: 5)
-- `-r, --sample-rate`: Sample rate in Hz (default: 16000)
-- `-c, --channels`: Number of audio channels (default: 1)
-- `-b, --bit-depth`: Audio bit depth - 16, 24, or 32 (default: 16)
-- `--api-url`: API base URL (default: http://127.0.0.1:8080)
-- `--list-devices`: List available audio devices and exit
+1. **Initialize Audio Device**: Automatically detect and use your default microphone
+2. **Setup & Countdown**: Display recording parameters and provide a 3-second countdown
+3. **Record Audio**: Capture audio with real-time progress updates
+4. **Process & Send**: Convert audio to the specified format and send to server
+5. **Display Results**: Show the transcription with segments and confidence scores
 
-## How it works
+## Audio Format Support
 
-1. The script records audio from your default microphone using `sounddevice`
-2. Converts the audio to PCM format at the specified bit depth
-3. Sends the raw audio data to the `/transcribe/raw` endpoint with format headers
-4. Displays the transcription result with segments and confidence scores
+- **Sample Rates**: Any rate supported by your audio device (commonly 8kHz to 192kHz)
+- **Channels**: Mono (1) or Stereo (2) 
+- **Bit Depths**: 16-bit, 24-bit, or 32-bit PCM
+- **Input Devices**: Automatic detection of default microphone
 
 ## Requirements
 
-- Python 3.7+
-- Working microphone
-- The open-transcribe Rust API server running
-- Required Python packages: `sounddevice`, `numpy`, `requests`
+- Working microphone for recording mode
+- Audio drivers (ALSA on Linux, WASAPI on Windows, CoreAudio on macOS)
+- The open-transcribe server running and accessible
 
 ## Troubleshooting
 
-- **"Recording failed"**: Check microphone permissions and that your microphone is working
-- **"Cannot connect to API"**: Make sure the Rust server is running on the correct port
-- **Audio device issues**: Use `--list-devices` to see available audio devices 
+- **"No input device available"**: Check that your microphone is connected and recognized by the system
+- **"Cannot connect to server"**: Ensure the server is running with `cargo run --bin server`
+- **Permission errors**: On some systems, microphone access may require additional permissions
+- **Audio quality issues**: Try adjusting sample rate and bit depth settings for your hardware
+
+## Complete Workflow Example
+
+Here's a complete example of using the audio recording feature:
+
+```bash
+# 1. Start the server in one terminal
+cargo run --bin server
+
+# 2. In another terminal, record and transcribe audio
+cargo run --bin client --record-mode --record-duration 10
+
+# Example output:
+# 🎵 Open Transcribe Client
+# ========================
+# 🎤 Recording Mode
+#    Duration: 10 seconds
+#    Audio format: 16000Hz, 1 channels, 16-bit
+#    Make sure your microphone is connected and working!
+# 
+# 🔍 Checking server health at: http://localhost:8080/api/v1/health
+# ✅ Server is healthy
+# 🎤 Starting audio recording...
+#    Duration: 10 seconds
+#    Sample rate: 16000Hz
+#    Channels: 1
+#    Bit depth: 16
+# 🎙️  Using input device: Default
+# 🔴 Recording starting in...
+#    3... 2... 1... 🎙️  GO!
+#    10 seconds remaining...
+#    5 seconds remaining...
+#    3 seconds remaining...
+#    2 seconds remaining...
+#    1 seconds remaining...
+# ⏹️  Recording stopped
+# 📊 Recorded 160000 samples
+# 💾 Converted to 320000 bytes
+# 📁 Audio source: recorded audio (320000 bytes)
+# 🚀 Sending transcription request to: http://localhost:8080/api/v1/transcribe
+#    Sample rate: 16000Hz, Channels: 1, Bit depth: 16
+# 
+# ✅ Transcription completed!
+# 📝 Result:
+# {
+#   "text": "Hello, this is a test of the audio recording feature.",
+#   "segments": [
+#     {
+#       "start": 0,
+#       "end": 3500,
+#       "text": "Hello, this is a test of the audio recording feature.",
+#       "confidence": 0.92
+#     }
+#   ]
+# }
+``` 
