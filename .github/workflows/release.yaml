@@ -70,7 +70,6 @@ jobs:
         with:
           cuda: "12.2"
           method: "network"
-          sub-packages: '["nvcc", "cudart", "curand", "cufft", "cusolve", "cusparse", "cublas", "thrust"]'
 
       - name: 📦 Install system dependencies
         if: matrix.deps != ''

@@ -86,9 +86,8 @@ jobs:
         if: matrix.cuda == true
         uses: Jimver/cuda-toolkit@v0.2.11
         with:
-          cuda: "12.2"
+          cuda: "12.5.0"
           method: "network"
-          sub-packages: '["nvcc", "cudart", "curand", "cufft", "cusolve", "cusparse", "cublas", "thrust"]'
 
       - name: 📦 Install system dependencies
         if: matrix.deps != ''
