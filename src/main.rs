@@ -4,6 +4,7 @@ use clap::Parser;
 use open_transcribe::cli::{Cli, Commands};
 use open_transcribe::client::run_client;
 use open_transcribe::config::ClientConfig;
+use open_transcribe::download::download_model;
 use open_transcribe::server::run_server;
 
 #[tokio::main]
@@ -19,6 +20,11 @@ async fn main() -> Result<()> {
             run_server(host, port)
                 .await
                 .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
+        }
+        Commands::Download { model, models_path } => {
+            println!("📥 Downloading Whisper Model");
+            println!("============================");
+            download_model(&model, models_path).await?;
         }
         Commands::TranscribeFile {
             audio_file,
