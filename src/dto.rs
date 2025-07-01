@@ -1,4 +1,3 @@
-
 #[derive(serde::Serialize)]
 pub struct TranscriptionDto {
     pub text: String,
