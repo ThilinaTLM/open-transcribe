@@ -1,0 +1,39 @@
+name: Build Windows
+
+on:
+  push:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🦀 Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: 🔨 Build
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: 📦 Package binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/x86_64-pc-windows-msvc/release/open-transcribe.exe \
+             dist/open-transcribe-x86_64-pc-windows-msvc.exe
+
+      - name: 🚀 Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-x86_64-pc-windows-msvc
+          path: dist/*
