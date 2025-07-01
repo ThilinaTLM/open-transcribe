@@ -92,6 +92,7 @@ jobs:
         run: ${{ matrix.deps }}
 
       - name: 🔨 Build
+        shell: bash
         run: |
           if [[ "${{ matrix.features }}" != "" ]]; then
             cargo build --release --target ${{ matrix.target }} --features ${{ matrix.features }}
