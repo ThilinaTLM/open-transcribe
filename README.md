@@ -280,4 +280,4 @@ RUST_LOG=debug cargo run -- serve
 
 ## License
 
-[Add your license information here]
+MIT
