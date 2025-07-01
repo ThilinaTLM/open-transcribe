@@ -22,6 +22,11 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnu
 
+      - name: 📦 Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
       - name: 🔨 Build
         run: cargo build --release --target x86_64-unknown-linux-gnu
 
