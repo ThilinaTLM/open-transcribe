@@ -57,7 +57,7 @@ pub async fn transcribe_upload(
                     audio_data = Some(data);
                 }
                 Err(e) => {
-                    error!("Failed to read audio data: {}", e);
+                    error!("Failed to read audio data: {e}");
                     return HttpResponse::BadRequest().json(serde_json::json!({
                         "error": "Failed to read audio data"
                     }));
@@ -67,7 +67,7 @@ pub async fn transcribe_upload(
                 if let Ok(field_data) = read_field_data(field).await {
                     if let Ok(text) = String::from_utf8(field_data) {
                         sample_rate = text.trim().parse().unwrap_or(16000);
-                        debug!("Sample rate set to: {}", sample_rate);
+                        debug!("Sample rate set to: {sample_rate}");
                     }
                 }
             }
@@ -75,7 +75,7 @@ pub async fn transcribe_upload(
                 if let Ok(field_data) = read_field_data(field).await {
                     if let Ok(text) = String::from_utf8(field_data) {
                         channels = text.trim().parse().unwrap_or(1);
-                        debug!("Channels set to: {}", channels);
+                        debug!("Channels set to: {channels}");
                     }
                 }
             }
@@ -83,7 +83,7 @@ pub async fn transcribe_upload(
                 if let Ok(field_data) = read_field_data(field).await {
                     if let Ok(text) = String::from_utf8(field_data) {
                         bit_depth = text.trim().parse().unwrap_or(16);
-                        debug!("Bit depth set to: {}", bit_depth);
+                        debug!("Bit depth set to: {bit_depth}");
                     }
                 }
             }
@@ -120,7 +120,7 @@ pub async fn transcribe_upload(
             samples
         }
         Err(error_msg) => {
-            error!("Failed to convert audio bytes to samples: {}", error_msg);
+            error!("Failed to convert audio bytes to samples: {error_msg}");
             return HttpResponse::BadRequest().json(serde_json::json!({
                 "error": error_msg
             }));
@@ -190,7 +190,7 @@ async fn transcribe_audio_samples(
             })
         }
         Err(e) => {
-            error!("Transcription failed: {}", e);
+            error!("Transcription failed: {e}");
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Transcription failed: {}", e)
             }))
@@ -214,14 +214,14 @@ pub async fn run_server(host: String, port: u16) -> std::io::Result<()> {
             t
         }
         Err(e) => {
-            error!("Failed to initialize transcriber: {}", e);
+            error!("Failed to initialize transcriber: {e}");
             std::process::exit(1);
         }
     };
 
     let app_state = web::Data::new(AppState { transcriber });
 
-    info!("Starting HTTP server on {}:{}", host, port);
+    info!("Starting HTTP server on {host}:{port}");
 
     HttpServer::new(move || {
         App::new()

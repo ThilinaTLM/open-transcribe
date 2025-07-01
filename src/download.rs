@@ -43,10 +43,10 @@ pub fn list_available_models() -> String {
     for model in AVAILABLE_MODELS {
         let model_class = model.split(&['.', '-'][..]).next().unwrap_or("");
         if model_class != current_class {
-            output.push_str(&format!("\n {}", model_class));
+            output.push_str(&format!("\n {model_class}"));
             current_class = model_class;
         }
-        output.push_str(&format!(" {}", model));
+        output.push_str(&format!(" {model}"));
     }
 
     output.push_str("\n\n");
@@ -106,10 +106,10 @@ fn download_with_tool(tool: &str, url: &str, output_path: &str) -> Result<()> {
 
     match tool {
         "wget2" => {
-            cmd.args(&["--no-config", "--progress", "bar", "-O", output_path, url]);
+            cmd.args(["--no-config", "--progress", "bar", "-O", output_path, url]);
         }
         "wget" => {
-            cmd.args(&[
+            cmd.args([
                 "--no-config",
                 "--quiet",
                 "--show-progress",
@@ -119,7 +119,7 @@ fn download_with_tool(tool: &str, url: &str, output_path: &str) -> Result<()> {
             ]);
         }
         "curl" => {
-            cmd.args(&["-L", "--output", output_path, url]);
+            cmd.args(["-L", "--output", output_path, url]);
         }
         _ => return Err(anyhow!("Unsupported download tool: {}", tool)),
     }
@@ -141,19 +141,19 @@ pub async fn download_model(model: &str, models_path: Option<String>) -> Result<
 
     // Determine download path
     let download_path = models_path.unwrap_or_else(|| ".".to_string());
-    let file_path = Path::new(&download_path).join(format!("ggml-{}.bin", model));
+    let file_path = Path::new(&download_path).join(format!("ggml-{model}.bin"));
 
     // Check if model already exists
     if file_path.exists() {
-        println!("Model '{}' already exists. Skipping download.", model);
+        println!("Model '{model}' already exists. Skipping download.");
         return Ok(());
     }
 
     // Get download info
     let (src, pfx) = get_download_info(model);
-    let url = format!("{}/{}-{}.bin", src, pfx, model);
+    let url = format!("{src}/{pfx}-{model}.bin");
 
-    println!("Downloading ggml model '{}' from '{}'...", model, src);
+    println!("Downloading ggml model '{model}' from '{src}'...");
 
     // Check for download tool
     let tool = check_download_tool()?;

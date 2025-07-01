@@ -116,8 +116,8 @@ impl SimpleTranscriber {
         debug!("Converting stereo audio to mono");
         let mono_audio =
             whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).map_err(|e| {
-                error!("Failed to convert audio to mono: {}", e);
-                anyhow::anyhow!("Failed to convert audio to mono: {}", e)
+                error!("Failed to convert audio to mono: {e}");
+                anyhow::anyhow!("Failed to convert audio to mono: {e}")
             })?;
 
         debug!("Audio converted to mono: {} samples", mono_audio.len());
@@ -149,8 +149,8 @@ impl SimpleTranscriber {
 
         debug!("Acquired transcriber lock, creating whisper state");
         let mut state = inner.ctx.create_state().map_err(|e| {
-            error!("Failed to create whisper state: {}", e);
-            anyhow::anyhow!("Failed to create whisper state: {}", e)
+            error!("Failed to create whisper state: {e}");
+            anyhow::anyhow!("Failed to create whisper state: {e}")
         })?;
 
         debug!(
@@ -160,25 +160,23 @@ impl SimpleTranscriber {
         let transcription_start = std::time::Instant::now();
 
         state.full(params, &mono_audio).map_err(|e| {
-            error!("Failed to run transcription: {}", e);
-            anyhow::anyhow!("Failed to run transcription: {}", e)
+            error!("Failed to run transcription: {e}");
+            anyhow::anyhow!("Failed to run transcription: {e}")
         })?;
 
         let transcription_duration = transcription_start.elapsed();
         info!(
-            "Whisper transcription completed in {:?}",
-            transcription_duration
+            "Whisper transcription completed in {transcription_duration:?}"
         );
 
         // Extract results
         let num_segments = state.full_n_segments().map_err(|e| {
-            error!("Failed to get segment count: {}", e);
-            anyhow::anyhow!("Failed to get segment count: {}", e)
+            error!("Failed to get segment count: {e}");
+            anyhow::anyhow!("Failed to get segment count: {e}")
         })?;
 
         debug!(
-            "Extracting {} segments from transcription result",
-            num_segments
+            "Extracting {num_segments} segments from transcription result"
         );
 
         let mut combined = String::new();
@@ -186,18 +184,18 @@ impl SimpleTranscriber {
 
         for i in 0..num_segments {
             let text = state.full_get_segment_text(i).map_err(|e| {
-                error!("Failed to get segment {} text: {}", i, e);
-                anyhow::anyhow!("Failed to get segment text: {}", e)
+                error!("Failed to get segment {i} text: {e}");
+                anyhow::anyhow!("Failed to get segment text: {e}")
             })?;
 
             let start = state.full_get_segment_t0(i).map_err(|e| {
-                error!("Failed to get segment {} start time: {}", i, e);
-                anyhow::anyhow!("Failed to get segment start: {}", e)
+                error!("Failed to get segment {i} start time: {e}");
+                anyhow::anyhow!("Failed to get segment start: {e}")
             })?;
 
             let end = state.full_get_segment_t1(i).map_err(|e| {
-                error!("Failed to get segment {} end time: {}", i, e);
-                anyhow::anyhow!("Failed to get segment end: {}", e)
+                error!("Failed to get segment {i} end time: {e}");
+                anyhow::anyhow!("Failed to get segment end: {e}")
             })?;
 
             // Calculate confidence from token probabilities
@@ -245,8 +243,7 @@ impl SimpleTranscriber {
         let n_tokens = state.full_n_tokens(segment_idx)?;
         if n_tokens == 0 {
             debug!(
-                "Segment {} has no tokens, returning confidence 0.0",
-                segment_idx
+                "Segment {segment_idx} has no tokens, returning confidence 0.0"
             );
             return Ok(0.0);
         }
@@ -261,8 +258,7 @@ impl SimpleTranscriber {
         let confidence = avg_logprob.exp();
 
         debug!(
-            "Segment {} confidence calculation: {} tokens, avg_logprob: {:.4}, confidence: {:.4}",
-            segment_idx, n_tokens, avg_logprob, confidence
+            "Segment {segment_idx} confidence calculation: {n_tokens} tokens, avg_logprob: {avg_logprob:.4}, confidence: {confidence:.4}"
         );
 
         Ok(confidence)

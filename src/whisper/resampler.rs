@@ -26,8 +26,7 @@ pub fn resample_to_16khz(
     }
 
     debug!(
-        "Processing {} frames ({} samples per channel)",
-        frames, frames
+        "Processing {frames} frames ({frames} samples per channel)"
     );
 
     let params = rubato::SincInterpolationParameters {
@@ -48,14 +47,12 @@ pub fn resample_to_16khz(
     }
 
     debug!(
-        "Prepared {} input channels with {} samples each",
-        channels, frames
+        "Prepared {channels} input channels with {frames} samples each"
     );
 
     let resample_ratio = 16000.0 / sample_rate as f64;
     debug!(
-        "Resample ratio: {:.6} ({}Hz -> 16kHz)",
-        resample_ratio, sample_rate
+        "Resample ratio: {resample_ratio:.6} ({sample_rate}Hz -> 16kHz)"
     );
 
     let resampler_start = std::time::Instant::now();
@@ -70,8 +67,7 @@ pub fn resample_to_16khz(
     let expected_output_frames = (frames as f64 * resample_ratio) as usize;
 
     debug!(
-        "Resampling completed in {:?}: delay={} frames, expected_output={} frames",
-        process_duration, delay, expected_output_frames
+        "Resampling completed in {process_duration:?}: delay={delay} frames, expected_output={expected_output_frames} frames"
     );
 
     let mut output = Vec::with_capacity(expected_output_frames * channels);
@@ -79,13 +75,12 @@ pub fn resample_to_16khz(
     let end_frame = (delay + expected_output_frames).min(resampled_channels[0].len());
 
     debug!(
-        "Extracting frames {}-{} from resampled output",
-        start_frame, end_frame
+        "Extracting frames {start_frame}-{end_frame} from resampled output"
     );
 
     for frame_idx in start_frame..end_frame {
-        for ch in 0..channels {
-            output.push(resampled_channels[ch][frame_idx]);
+        for resampled_channel in resampled_channels.iter().take(channels) {
+            output.push(resampled_channel[frame_idx]);
         }
     }
 

@@ -82,8 +82,8 @@ pub fn convert_audio_bytes_to_samples(
             Ok(samples)
         }
         _ => {
-            error!("Unsupported bit depth: {}", bit_depth);
-            Err(format!("Unsupported bit depth: {}", bit_depth))
+            error!("Unsupported bit depth: {bit_depth}");
+            Err(format!("Unsupported bit depth: {bit_depth}"))
         }
     }
 }
@@ -122,7 +122,7 @@ pub fn record_audio(config: &ClientConfig) -> Result<Vec<u8>> {
             let mut samples = recorded_samples_clone.lock().unwrap();
             samples.extend_from_slice(data);
         },
-        |err| eprintln!("Error in audio stream: {}", err),
+        |err| eprintln!("Error in audio stream: {err}"),
         None,
     )?;
 
@@ -130,7 +130,7 @@ pub fn record_audio(config: &ClientConfig) -> Result<Vec<u8>> {
 
     println!("🔴 Recording starting in...");
     for i in (1..=3).rev() {
-        print!("   {}... ", i);
+        print!("   {i}... ");
         std::io::stdout().flush().unwrap();
         std::thread::sleep(Duration::from_secs(1));
     }
@@ -138,7 +138,7 @@ pub fn record_audio(config: &ClientConfig) -> Result<Vec<u8>> {
 
     for remaining in (1..=config.record_duration).rev() {
         if remaining % 5 == 0 || remaining <= 3 {
-            println!("   {} seconds remaining...", remaining);
+            println!("   {remaining} seconds remaining...");
         }
         std::thread::sleep(Duration::from_secs(1));
     }

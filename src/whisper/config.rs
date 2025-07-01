@@ -2,8 +2,9 @@
 
 use log::{debug, info, warn};
 use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WhisperConfig {
     pub model_path: PathBuf,
     pub use_gpu: bool,
@@ -25,7 +26,7 @@ impl Default for WhisperConfig {
         let use_gpu = std::env::var("WHISPER_USE_GPU")
             .map(|v| {
                 let gpu_enabled = v.parse().unwrap_or(true);
-                debug!("WHISPER_USE_GPU={}, parsed as: {}", v, gpu_enabled);
+                debug!("WHISPER_USE_GPU={v}, parsed as: {gpu_enabled}");
                 gpu_enabled
             })
             .unwrap_or_else(|_| {
@@ -41,7 +42,7 @@ impl Default for WhisperConfig {
         let audio_context = std::env::var("WHISPER_AUDIO_CONTEXT")
             .map(|v| {
                 let context = v.parse().unwrap_or(768);
-                debug!("WHISPER_AUDIO_CONTEXT={}, parsed as: {}", v, context);
+                debug!("WHISPER_AUDIO_CONTEXT={v}, parsed as: {context}");
                 context
             })
             .unwrap_or_else(|_| {
@@ -53,8 +54,7 @@ impl Default for WhisperConfig {
             .map(|v| {
                 let threshold = v.parse().unwrap_or(0.6);
                 debug!(
-                    "WHISPER_NO_SPEECH_THRESHOLD={}, parsed as: {}",
-                    v, threshold
+                    "WHISPER_NO_SPEECH_THRESHOLD={v}, parsed as: {threshold}"
                 );
                 threshold
             })
@@ -70,13 +70,12 @@ impl Default for WhisperConfig {
         let num_threads = std::env::var("WHISPER_NUM_THREADS")
             .map(|v| {
                 let threads = v.parse().unwrap_or(default_threads);
-                debug!("WHISPER_NUM_THREADS={}, parsed as: {}", v, threads);
+                debug!("WHISPER_NUM_THREADS={v}, parsed as: {threads}");
                 threads
             })
             .unwrap_or_else(|_| {
                 debug!(
-                    "WHISPER_NUM_THREADS not set, defaulting to: {} (available parallelism)",
-                    default_threads
+                    "WHISPER_NUM_THREADS not set, defaulting to: {default_threads} (available parallelism)"
                 );
                 default_threads
             });

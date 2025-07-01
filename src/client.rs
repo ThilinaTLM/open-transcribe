@@ -57,7 +57,7 @@ pub async fn send_transcription_request(config: &ClientConfig) -> Result<Value> 
     );
 
     let response = client
-        .post(&format!("{}/api/v1/transcribe", config.server_url))
+        .post(format!("{}/api/v1/transcribe", config.server_url))
         .multipart(form)
         .send()
         .await
@@ -86,10 +86,10 @@ pub async fn send_transcription_request(config: &ClientConfig) -> Result<Value> 
 pub async fn check_server_health(server_url: &str) -> Result<()> {
     let client = reqwest::Client::new();
 
-    println!("🔍 Checking server health at: {}/api/v1/health", server_url);
+    println!("🔍 Checking server health at: {server_url}/api/v1/health");
 
     let response = client
-        .get(&format!("{}/api/v1/health", server_url))
+        .get(format!("{server_url}/api/v1/health"))
         .send()
         .await
         .map_err(|e| anyhow!("Failed to connect to server: {}", e))?;
@@ -121,7 +121,7 @@ pub async fn run_client(config: ClientConfig) -> Result<()> {
     }
 
     if let Err(e) = check_server_health(&config.server_url).await {
-        eprintln!("❌ {}", e);
+        eprintln!("❌ {e}");
         eprintln!("💡 Make sure the server is running: open-transcribe serve");
         return Err(e);
     }
@@ -133,7 +133,7 @@ pub async fn run_client(config: ClientConfig) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
         Err(e) => {
-            eprintln!("❌ Transcription failed: {}", e);
+            eprintln!("❌ Transcription failed: {e}");
             return Err(e);
         }
     }
