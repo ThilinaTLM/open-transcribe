@@ -1,5 +1,5 @@
-mod dto;
-mod whisper;
+use open_transcribe::dto;
+use open_transcribe::whisper;
 
 use actix_cors::Cors;
 use actix_multipart::{Field, Multipart};
