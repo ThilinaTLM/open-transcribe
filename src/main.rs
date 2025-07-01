@@ -1,4 +1,4 @@
-mod models;
+mod dto;
 mod whisper;
 
 use actix_cors::Cors;
@@ -157,10 +157,10 @@ async fn transcribe_audio_samples(
 
     match transcriber.transcribe(&input_audio) {
         Ok(output) => {
-            let segments: Vec<models::TranscriptionSegment> = output
+            let segments: Vec<dto::TranscriptionSegment> = output
                 .segments
                 .into_iter()
-                .map(|seg| models::TranscriptionSegment {
+                .map(|seg| dto::TranscriptionSegment {
                     start: seg.start,
                     end: seg.end,
                     text: seg.text,
@@ -168,7 +168,7 @@ async fn transcribe_audio_samples(
                 })
                 .collect();
 
-            HttpResponse::Ok().json(models::TranscriptionDto {
+            HttpResponse::Ok().json(dto::TranscriptionDto {
                 text: output.combined,
                 segments: Some(segments),
             })
