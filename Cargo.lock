@@ -1225,6 +1225,7 @@ dependencies = [
  "base64",
  "env_logger",
  "futures-util",
+ "log",
  "rubato",
  "serde",
  "serde_json",
