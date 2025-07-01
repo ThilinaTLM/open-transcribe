@@ -20,7 +20,3 @@ reqwest = { version = "0.12", features = ["multipart"] }
 tokio = { version = "1.0", features = ["full"] }
 cpal = "0.16"
 clap = { version = "4.4", features = ["derive"] }
-
-# Platform-specific dependencies for CUDA support
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
-whisper-rs = { version = "0.14", features = ["cuda", "log_backend"] }
