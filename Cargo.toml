@@ -3,8 +3,23 @@ name = "open-transcribe"
 version = "0.1.0"
 edition = "2024"
 
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+[profile.dev.package."*"]
+opt-level = 3
+
 [dependencies]
-actix-web = "4.11.0"
+actix-web = { version = "4.11.0", default-features = false, features = [
+    "macros",
+] }
 actix-cors = "0.7.0"
 actix-multipart = "0.7.2"
 anyhow = "1.0.98"
@@ -16,7 +31,15 @@ rubato = "0.16.2"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 whisper-rs = { version = "0.14", features = ["log_backend"] }
-reqwest = { version = "0.12", features = ["multipart"] }
-tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "multipart",
+    "rustls-tls",
+] }
+tokio = { version = "1.0", default-features = false, features = [
+    "rt-multi-thread",
+    "macros",
+    "fs",
+    "time",
+] }
 cpal = "0.16"
 clap = { version = "4.4", features = ["derive"] }
