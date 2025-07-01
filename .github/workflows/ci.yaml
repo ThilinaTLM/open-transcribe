@@ -41,7 +41,7 @@ jobs:
       - name: 📎 Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-  # Parallel builds for Linux and Windows only
+  # Parallel builds for Linux, Linux CUDA, and Windows
   build:
     name: Build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
@@ -53,9 +53,16 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             deps: sudo apt-get update -qq && sudo apt-get install -y libasound2-dev
+            features: ""
+          - target: x86_64-unknown-linux-gnu-cuda
+            os: ubuntu-latest
+            deps: sudo apt-get update -qq && sudo apt-get install -y libasound2-dev
+            features: "whisper-rs/cuda"
+            cuda: true
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             deps: ""
+            features: ""
 
     steps:
       - name: 📥 Checkout code
@@ -72,12 +79,25 @@ jobs:
           key: ${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           cache-on-failure: true
 
+      - name: 🎯 Install CUDA Toolkit
+        if: matrix.cuda == true
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: '12.2'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "curand", "cufft", "cusolve", "cusparse", "cublas", "thrust"]'
+
       - name: 📦 Install system dependencies
         if: matrix.deps != ''
         run: ${{ matrix.deps }}
 
       - name: 🔨 Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [[ "${{ matrix.features }}" != "" ]]; then
+            cargo build --release --target ${{ matrix.target }} --features ${{ matrix.features }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: 📦 Package binary
         shell: bash
@@ -85,6 +105,8 @@ jobs:
           mkdir -p dist
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
             cp target/${{ matrix.target }}/release/open-transcribe.exe dist/open-transcribe-${{ matrix.target }}.exe
+          elif [[ "${{ matrix.target }}" == *"cuda"* ]]; then
+            cp target/x86_64-unknown-linux-gnu/release/open-transcribe dist/open-transcribe-${{ matrix.target }}
           else
             cp target/${{ matrix.target }}/release/open-transcribe dist/open-transcribe-${{ matrix.target }}
           fi
