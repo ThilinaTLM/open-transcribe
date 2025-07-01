@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   build-linux:
-    uses: ThilinaTLM/open-transcribe/.github/workflows/build-linux.yaml@master
+    uses: ThilinaTLM/open-transcribe/.github/workflows/build-linux.yaml@main
 
   build-windows:
-    uses: ThilinaTLM/open-transcribe/.github/workflows/build-windows.yaml@master
+    uses: ThilinaTLM/open-transcribe/.github/workflows/build-windows.yaml@main
 
   release:
     runs-on: ubuntu-latest
