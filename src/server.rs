@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_multipart::{Field, Multipart};
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, middleware::Logger, post, web};
+use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::Result;
 use futures_util::TryStreamExt;
 use log::{debug, error, info, warn};

@@ -165,9 +165,7 @@ impl SimpleTranscriber {
         })?;
 
         let transcription_duration = transcription_start.elapsed();
-        info!(
-            "Whisper transcription completed in {transcription_duration:?}"
-        );
+        info!("Whisper transcription completed in {transcription_duration:?}");
 
         // Extract results
         let num_segments = state.full_n_segments().map_err(|e| {
@@ -175,9 +173,7 @@ impl SimpleTranscriber {
             anyhow::anyhow!("Failed to get segment count: {e}")
         })?;
 
-        debug!(
-            "Extracting {num_segments} segments from transcription result"
-        );
+        debug!("Extracting {num_segments} segments from transcription result");
 
         let mut combined = String::new();
         let mut segments = Vec::with_capacity(num_segments as usize);
@@ -242,9 +238,7 @@ impl SimpleTranscriber {
     ) -> Result<f32> {
         let n_tokens = state.full_n_tokens(segment_idx)?;
         if n_tokens == 0 {
-            debug!(
-                "Segment {segment_idx} has no tokens, returning confidence 0.0"
-            );
+            debug!("Segment {segment_idx} has no tokens, returning confidence 0.0");
             return Ok(0.0);
         }
 

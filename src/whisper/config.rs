@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use log::{debug, info, warn};
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WhisperConfig {
@@ -53,9 +53,7 @@ impl Default for WhisperConfig {
         let no_speech_threshold = std::env::var("WHISPER_NO_SPEECH_THRESHOLD")
             .map(|v| {
                 let threshold = v.parse().unwrap_or(0.6);
-                debug!(
-                    "WHISPER_NO_SPEECH_THRESHOLD={v}, parsed as: {threshold}"
-                );
+                debug!("WHISPER_NO_SPEECH_THRESHOLD={v}, parsed as: {threshold}");
                 threshold
             })
             .unwrap_or_else(|_| {

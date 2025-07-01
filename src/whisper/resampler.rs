@@ -25,9 +25,7 @@ pub fn resample_to_16khz(
         return Err(anyhow::anyhow!("No audio frames to resample"));
     }
 
-    debug!(
-        "Processing {frames} frames ({frames} samples per channel)"
-    );
+    debug!("Processing {frames} frames ({frames} samples per channel)");
 
     let params = rubato::SincInterpolationParameters {
         sinc_len: 128,
@@ -46,14 +44,10 @@ pub fn resample_to_16khz(
         }
     }
 
-    debug!(
-        "Prepared {channels} input channels with {frames} samples each"
-    );
+    debug!("Prepared {channels} input channels with {frames} samples each");
 
     let resample_ratio = 16000.0 / sample_rate as f64;
-    debug!(
-        "Resample ratio: {resample_ratio:.6} ({sample_rate}Hz -> 16kHz)"
-    );
+    debug!("Resample ratio: {resample_ratio:.6} ({sample_rate}Hz -> 16kHz)");
 
     let resampler_start = std::time::Instant::now();
     let mut resampler = SincFixedIn::<f32>::new(resample_ratio, 2.0, params, frames, channels)?;
@@ -74,9 +68,7 @@ pub fn resample_to_16khz(
     let start_frame = delay;
     let end_frame = (delay + expected_output_frames).min(resampled_channels[0].len());
 
-    debug!(
-        "Extracting frames {start_frame}-{end_frame} from resampled output"
-    );
+    debug!("Extracting frames {start_frame}-{end_frame} from resampled output");
 
     for frame_idx in start_frame..end_frame {
         for resampled_channel in resampled_channels.iter().take(channels) {
